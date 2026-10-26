@@ -93,6 +93,49 @@ export const PageMain: React.FC<PageMainProps> = ({
     }));
   };
 
+  // Luck Controls
+  const handleLuckCurrentChange = (delta: number) => {
+    sounds.playClick();
+    onUpdateCharacter((prev) => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        LUCK_CURRENT: Math.max(0, Math.min(prev.stats.LUCK_MAX, prev.stats.LUCK_CURRENT + delta)),
+      },
+    }));
+  };
+
+  const handleLuckMaxChange = (delta: number) => {
+    sounds.playClick();
+    onUpdateCharacter((prev) => {
+      const newMax = Math.max(1, Math.min(10, prev.stats.LUCK_MAX + delta));
+      const newCurrent = prev.stats.LUCK_CURRENT > newMax
+        ? newMax
+        : prev.stats.LUCK_CURRENT === prev.stats.LUCK_MAX
+        ? newMax
+        : prev.stats.LUCK_CURRENT;
+      return {
+        ...prev,
+        stats: {
+          ...prev.stats,
+          LUCK_MAX: newMax,
+          LUCK_CURRENT: newCurrent,
+        },
+      };
+    });
+  };
+
+  const handleLuckReset = () => {
+    sounds.playClick();
+    onUpdateCharacter((prev) => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        LUCK_CURRENT: prev.stats.LUCK_MAX,
+      },
+    }));
+  };
+
   // HP Controls
   const handleHpChange = (delta: number) => {
     sounds.playClick();
@@ -474,7 +517,7 @@ export const PageMain: React.FC<PageMainProps> = ({
               { key: 'TECH', label: 'TECH', desc: 'Técnica', baseVal: character.stats.TECH, effVal: effectiveStats.TECH },
               { key: 'COOL', label: 'COOL', desc: 'Autocontrole', baseVal: character.stats.COOL, effVal: effectiveStats.COOL },
               { key: 'WILL', label: 'WILL', desc: 'Vontade', baseVal: character.stats.WILL, effVal: effectiveStats.WILL },
-              { key: 'LUCK_CURRENT', label: 'LUCK', desc: 'Sorte', baseVal: character.stats.LUCK_CURRENT, effVal: character.stats.LUCK_MAX, isLuck: true },
+              { key: 'LUCK_MAX', label: 'LUCK', desc: 'Sorte', baseVal: character.stats.LUCK_CURRENT, effVal: character.stats.LUCK_MAX, isLuck: true },
               { key: 'MOVE', label: 'MOVE', desc: 'Movimento', baseVal: character.stats.MOVE, effVal: effectiveStats.MOVE },
               { key: 'BODY', label: 'BODY', desc: 'Constituição', baseVal: character.stats.BODY, effVal: effectiveStats.BODY },
               { key: 'EMP_BASE', label: 'EMP', desc: 'Empatia', baseVal: character.stats.EMP_BASE, effVal: effectiveStats.EMP, isEmp: true },
@@ -506,8 +549,20 @@ export const PageMain: React.FC<PageMainProps> = ({
                 <div className="my-2 text-center">
                   {item.isLuck ? (
                     <div className="font-orbitron font-bold">
-                      <span className="text-xl text-yellow-400">{character.stats.LUCK_CURRENT}</span>
-                      <span className="text-xs font-mono text-slate-500"> / {character.stats.LUCK_MAX}</span>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-xl text-yellow-400" title="Sorte Atual (Disponível)">
+                          {character.stats.LUCK_CURRENT}
+                        </span>
+                        <span className="text-xs font-mono text-slate-500">/</span>
+                        <span className="text-base font-bold text-cyan-400" title="Sorte Máxima (Atributo Base)">
+                          {character.stats.LUCK_MAX}
+                        </span>
+                      </div>
+                      <div className="text-[9px] font-mono text-slate-400 flex items-center justify-center gap-1 mt-0.5">
+                        <span className="text-yellow-400/80">ATUAL</span>
+                        <span className="text-slate-600">•</span>
+                        <span className="text-cyan-400 font-bold">BASE</span>
+                      </div>
                     </div>
                   ) : hasMod ? (
                     <div className="flex items-baseline justify-center gap-1 font-orbitron">
@@ -545,54 +600,52 @@ export const PageMain: React.FC<PageMainProps> = ({
                 )}
 
                 {item.isLuck && (
-                  <div className="flex items-center justify-between gap-1 pt-1 border-t border-[#181d2c]">
-                    <button
-                      onClick={() => {
-                        sounds.playClick();
-                        onUpdateCharacter((prev) => ({
-                          ...prev,
-                          stats: {
-                            ...prev.stats,
-                            LUCK_CURRENT: Math.max(0, prev.stats.LUCK_CURRENT - 1),
-                          },
-                        }));
-                      }}
-                      className="w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800"
-                      title="Gastar ponto de Sorte"
-                    >
-                      <Minus size={10} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        sounds.playClick();
-                        onUpdateCharacter((prev) => ({
-                          ...prev,
-                          stats: {
-                            ...prev.stats,
-                            LUCK_CURRENT: prev.stats.LUCK_MAX,
-                          },
-                        }));
-                      }}
-                      className="text-[9px] font-mono text-yellow-400 hover:underline"
-                      title="Resetar Sorte para o Máximo"
-                    >
-                      RESET
-                    </button>
-                    <button
-                      onClick={() => {
-                        sounds.playClick();
-                        onUpdateCharacter((prev) => ({
-                          ...prev,
-                          stats: {
-                            ...prev.stats,
-                            LUCK_CURRENT: Math.min(prev.stats.LUCK_MAX, prev.stats.LUCK_CURRENT + 1),
-                          },
-                        }));
-                      }}
-                      className="w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800"
-                    >
-                      <Plus size={10} />
-                    </button>
+                  <div className="space-y-1.5 pt-1 border-t border-[#181d2c]">
+                    {/* Linha 1: Ajustar Sorte Atual (Gastar / Recuperar / Reset) */}
+                    <div className="flex items-center justify-between gap-1">
+                      <button
+                        onClick={() => handleLuckCurrentChange(-1)}
+                        className="w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800"
+                        title="Gastar 1 ponto de Sorte"
+                      >
+                        <Minus size={10} />
+                      </button>
+                      <button
+                        onClick={handleLuckReset}
+                        className="text-[9px] font-mono text-yellow-400 hover:underline uppercase font-bold"
+                        title="Resetar Sorte Atual para o Máximo"
+                      >
+                        RESET
+                      </button>
+                      <button
+                        onClick={() => handleLuckCurrentChange(1)}
+                        className="w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800"
+                        title="Recuperar 1 ponto de Sorte"
+                      >
+                        <Plus size={10} />
+                      </button>
+                    </div>
+
+                    {/* Linha 2: Ajustar Sorte Base / Máxima (1 a 10) */}
+                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-[#181d2c]/60">
+                      <button
+                        onClick={() => handleLuckMaxChange(-1)}
+                        className="w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
+                        title="Diminuir Sorte Base / Máxima (1-10)"
+                      >
+                        <Minus size={10} />
+                      </button>
+                      <span className="text-[9px] font-mono text-cyan-400 font-bold uppercase" title="Atributo Base (Máximo 1 a 10)">
+                        BASE
+                      </span>
+                      <button
+                        onClick={() => handleLuckMaxChange(1)}
+                        className="w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
+                        title="Aumentar Sorte Base / Máxima (1-10)"
+                      >
+                        <Plus size={10} />
+                      </button>
+                    </div>
                   </div>
                 )}
 
