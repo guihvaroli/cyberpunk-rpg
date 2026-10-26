@@ -21,6 +21,13 @@ export function App() {
         const parsed = JSON.parse(saved);
         // Ensure critical fields exist
         if (parsed && parsed.stats && parsed.skills) {
+          if (parsed.stats.LUCK_MAX === undefined && parsed.stats.LUCK !== undefined) {
+            parsed.stats.LUCK_MAX = parsed.stats.LUCK;
+            parsed.stats.LUCK_CURRENT = parsed.stats.LUCK;
+          } else if (parsed.stats.LUCK_MAX === undefined) {
+            parsed.stats.LUCK_MAX = 6;
+            parsed.stats.LUCK_CURRENT = parsed.stats.LUCK_CURRENT ?? 6;
+          }
           return parsed;
         }
       }

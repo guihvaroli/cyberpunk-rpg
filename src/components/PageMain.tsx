@@ -549,34 +549,109 @@ export const PageMain: React.FC<PageMainProps> = ({
                 <div className="my-2 text-center">
                   {item.isLuck ? (
                     <div className="font-orbitron font-bold">
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-xl text-yellow-400" title="Sorte Atual (Disponível)">
-                          {character.stats.LUCK_CURRENT}
-                        </span>
-                        <span className="text-xs font-mono text-slate-500">/</span>
-                        <span className="text-base font-bold text-cyan-400" title="Sorte Máxima (Atributo Base)">
-                          {character.stats.LUCK_MAX}
-                        </span>
-                      </div>
-                      <div className="text-[9px] font-mono text-slate-400 flex items-center justify-center gap-1 mt-0.5">
-                        <span className="text-yellow-400/80">ATUAL</span>
-                        <span className="text-slate-600">•</span>
-                        <span className="text-cyan-400 font-bold">BASE</span>
+                      <div className="flex items-center justify-center gap-1">
+                        {/* Input Sorte Atual */}
+                        <div className="flex flex-col items-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max={character.stats.LUCK_MAX ?? 10}
+                            value={character.stats.LUCK_CURRENT ?? 0}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              const maxVal = character.stats.LUCK_MAX ?? 10;
+                              const num = isNaN(val) ? 0 : Math.max(0, Math.min(maxVal, val));
+                              onUpdateCharacter((prev) => ({
+                                ...prev,
+                                stats: {
+                                  ...prev.stats,
+                                  LUCK_CURRENT: num,
+                                },
+                              }));
+                            }}
+                            className="w-11 h-8 text-center bg-[#07080c] border border-yellow-400/60 rounded text-yellow-400 font-black text-lg focus:border-yellow-400 focus:outline-none"
+                            title="Pontos de Sorte Atuais"
+                          />
+                          <span className="text-[8px] font-mono text-yellow-400/90 font-bold uppercase mt-0.5">
+                            ATUAL
+                          </span>
+                        </div>
+
+                        <span className="text-slate-500 font-bold text-base mb-3">/</span>
+
+                        {/* Input Sorte Máxima (Base) */}
+                        <div className="flex flex-col items-center">
+                          <input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={character.stats.LUCK_MAX ?? 6}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              const num = isNaN(val) ? 1 : Math.max(1, Math.min(10, val));
+                              onUpdateCharacter((prev) => {
+                                const currentVal = prev.stats.LUCK_CURRENT ?? (prev.stats.LUCK_MAX ?? 6);
+                                return {
+                                  ...prev,
+                                  stats: {
+                                    ...prev.stats,
+                                    LUCK_MAX: num,
+                                    LUCK_CURRENT: Math.min(num, currentVal),
+                                  },
+                                };
+                              });
+                            }}
+                            className="w-11 h-8 text-center bg-[#07080c] border border-cyan-400/60 rounded text-cyan-300 font-black text-lg focus:border-cyan-400 focus:outline-none"
+                            title="Sorte Base / Máxima (1 a 10)"
+                          />
+                          <span className="text-[8px] font-mono text-cyan-400 font-bold uppercase mt-0.5">
+                            BASE
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  ) : hasMod ? (
-                    <div className="flex items-baseline justify-center gap-1 font-orbitron">
-                      <span className={`text-2xl font-black ${item.effVal < item.baseVal ? 'text-red-400' : 'text-yellow-400'}`}>
-                        {item.effVal}
+                  ) : item.isEmp ? (
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center justify-center gap-1 font-orbitron">
+                        <span className="text-2xl font-black text-slate-100" title="EMP Efetivo (Calculado da Humanidade)">
+                          {item.effVal}
+                        </span>
+                        <span className="text-xs text-slate-500 font-mono">
+                          (Base {character.stats.EMP_BASE})
+                        </span>
+                      </div>
+                      <span className="text-[8px] font-mono text-cyan-400 uppercase mt-0.5">
+                        EFETIVO
                       </span>
-                      <span className="text-xs line-through text-slate-500 font-mono">
-                        ({item.baseVal})
+                    </div>
+                  ) : hasMod ? (
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-baseline justify-center gap-1 font-orbitron">
+                        <span className={`text-2xl font-black ${item.effVal < item.baseVal ? 'text-red-400' : 'text-yellow-400'}`} title="Valor Efetivo com modificadores">
+                          {item.effVal}
+                        </span>
+                        <span className="text-xs line-through text-slate-500 font-mono">
+                          ({item.baseVal})
+                        </span>
+                      </div>
+                      <span className="text-[8px] font-mono text-slate-400 uppercase mt-0.5">
+                        EFETIVO (BASE {item.baseVal})
                       </span>
                     </div>
                   ) : (
-                    <span className="text-2xl font-black font-orbitron text-slate-100">
-                      {item.baseVal}
-                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={item.baseVal}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        const num = isNaN(val) ? 1 : Math.max(1, Math.min(10, val));
+                        handleStatChange(item.key as keyof typeof character.stats, num);
+                      }}
+                      className="w-12 h-8 text-center bg-[#07080c] border border-[#282d42] focus:border-cyan-400 rounded font-orbitron font-black text-xl text-slate-100 focus:outline-none"
+                      title="Valor Base (1 a 10)"
+                    />
                   )}
                 </div>
 
