@@ -16,10 +16,11 @@ import {
   Cpu, 
   User, 
   Activity,
-  Layers
+  Layers,
+  Terminal
 } from 'lucide-react';
 
-export type ActiveView = 'main' | 'skills' | 'ripperdoc';
+export type ActiveView = 'main' | 'skills' | 'ripperdoc' | 'netrunning';
 
 interface HeaderProps {
   character: CharacterSheet;
@@ -257,6 +258,26 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </span>
           </button>
+
+          {/* VIEW 4: Netrunner (Shown only when character.role === 'Netrunner') */}
+          {character.role === 'Netrunner' && (
+            <button
+              onClick={() => { sounds.playClick(); onSelectView('netrunning'); }}
+              className={`py-2.5 px-4 font-orbitron text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 ${
+                activeView === 'netrunning'
+                  ? 'border-emerald-400 text-emerald-300 bg-emerald-400/10 shadow-[0_2px_8px_rgba(16,185,129,0.3)]'
+                  : 'border-transparent text-emerald-400/80 hover:text-emerald-200 hover:bg-emerald-950/30'
+              }`}
+            >
+              <Terminal size={15} className={activeView === 'netrunning' ? 'text-emerald-400 animate-pulse' : 'text-emerald-500'} />
+              <span className="flex items-center gap-1.5">
+                <span>Página 4: Netrunner (Cyberdeck & Hacks)</span>
+                <span className="px-1.5 py-0.2 text-[9px] font-mono rounded bg-emerald-950 border border-emerald-500/50 text-emerald-300">
+                  NET v3.0
+                </span>
+              </span>
+            </button>
+          )}
 
         </div>
       </div>

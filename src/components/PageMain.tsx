@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import type { CharacterSheet, CriticalInjury, RoleName, Weapon } from '../types/character';
+import type { CharacterSheet, CriticalInjury, RoleName, Weapon, InventoryItem } from '../types/character';
 import { ROLE_ABILITIES, calculateEffectiveStats, calculateHumanityAndEmp, calculateMaxHp, calculateSeriouslyWoundedThreshold, rollDamage } from '../utils/calculations';
 import type { DamageRollResult } from '../utils/calculations';
 import { sounds } from '../utils/audio';
+import { INVENTORY_CATEGORIES, InventoryCategoryFilter, PRESET_INVENTORY_ITEMS } from '../data/inventoryCatalog';
 import { 
   Heart, 
   Shield, 
@@ -15,7 +16,12 @@ import {
   RotateCcw,
   Sword,
   Wrench,
-  ChevronDown
+  ChevronDown,
+  Package,
+  Coins,
+  CheckCircle2,
+  Box,
+  ShoppingBag
 } from 'lucide-react';
 
 interface PageMainProps {
@@ -69,6 +75,17 @@ export const PageMain: React.FC<PageMainProps> = ({
   const [newInjuryName, setNewInjuryName] = useState('');
   const [newInjuryLocation, setNewInjuryLocation] = useState('Torso');
   const [newInjuryEffect, setNewInjuryEffect] = useState('');
+
+  // Inventory state
+  const [inventoryCategory, setInventoryCategory] = useState<InventoryCategoryFilter>('All');
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [showAddInventoryModal, setShowAddInventoryModal] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState<InventoryItem['category']>('Gear');
+  const [newItemQuantity, setNewItemQuantity] = useState(1);
+  const [newItemCost, setNewItemCost] = useState(50);
+  const [newItemDescription, setNewItemDescription] = useState('');
+  const [newItemEquipped, setNewItemEquipped] = useState(true);
 
   // Handle Role Change
   const handleRoleChange = (newRole: RoleName) => {
@@ -305,6 +322,89 @@ export const PageMain: React.FC<PageMainProps> = ({
     }));
   };
 
+  // Inventory handlers
+  const handleAdjustEurobucks = (delta: number) => {
+    sounds.playClick();
+    onUpdateCharacter((prev) => ({
+      ...prev,
+      eurobucks: Math.max(0, (prev.eurobucks || 0) + delta),
+    }));
+  };
+
+  const handleAdjustItemQuantity = (id: string, delta: number) => {
+    sounds.playClick();
+    onUpdateCharacter((prev) => {
+      const items = (prev.inventory || []).map((item) => {
+        if (item.id === id) {
+          const newQty = Math.max(0, item.quantity + delta);
+          return { ...item, quantity: newQty };
+        }
+        return item;
+      }).filter((item) => item.quantity > 0);
+      return { ...prev, inventory: items };
+    });
+  };
+
+  const handleToggleItemEquipped = (id: string) => {
+    sounds.playClick();
+    onUpdateCharacter((prev) => ({
+      ...prev,
+      inventory: (prev.inventory || []).map((item) =>
+        item.id === id ? { ...item, equipped: !item.equipped } : item
+      ),
+    }));
+  };
+
+  const handleRemoveItem = (id: string, name: string) => {
+    if (confirm(`Remover "${name}" do inventário?`)) {
+      sounds.playClick();
+      onUpdateCharacter((prev) => ({
+        ...prev,
+        inventory: (prev.inventory || []).filter((item) => item.id !== id),
+      }));
+    }
+  };
+
+  const handleInstallPresetItem = (preset: typeof PRESET_INVENTORY_ITEMS[0]) => {
+    sounds.playEquipCyberware();
+    const newItem: InventoryItem = {
+      ...preset,
+      id: 'inv-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+    };
+
+    onUpdateCharacter((prev) => ({
+      ...prev,
+      inventory: [...(prev.inventory || []), newItem],
+    }));
+  };
+
+  const handleAddNewItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItemName.trim()) return;
+
+    sounds.playEquipCyberware();
+    const newItem: InventoryItem = {
+      id: 'inv-' + Date.now(),
+      name: newItemName.trim(),
+      category: newItemCategory,
+      quantity: Math.max(1, newItemQuantity),
+      costEb: Math.max(0, newItemCost),
+      equipped: newItemEquipped,
+      description: newItemDescription.trim() || 'Equipamento de Night City.',
+    };
+
+    onUpdateCharacter((prev) => ({
+      ...prev,
+      inventory: [...(prev.inventory || []), newItem],
+    }));
+
+    setNewItemName('');
+    setNewItemDescription('');
+    setNewItemQuantity(1);
+    setNewItemCost(50);
+    setShowAddInventoryModal(false);
+  };
+
   // Death Save roll
   const handleRollDeathSave = () => {
     sounds.playDiceRoll();
@@ -326,6 +426,17 @@ export const PageMain: React.FC<PageMainProps> = ({
       alert(`DEATH SAVE FALHOU!\nRolagem: ${d10} + ${penalty} (Penalidade) = ${rollTotal} vs BODY ${targetBody}.\nO personagem MORREU ou necessita de intervenção médica imediata (Trauma Team / Paramedic)!`);
     }
   };
+
+  const characterInventory = character.inventory || [];
+  const filteredInventory = characterInventory.filter((item) => {
+    const matchesCategory = inventoryCategory === 'All' || item.category === inventoryCategory;
+    const matchesSearch = item.name.toLowerCase().includes(inventorySearch.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(inventorySearch.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
+
+  const totalCarriedQuantity = characterInventory.reduce((acc, curr) => acc + (curr.quantity || 1), 0);
+  const maxCarryLoad = effectiveStats.BODY * 10;
 
   return (
     <div className="space-y-6 pb-12">
@@ -1215,6 +1326,242 @@ export const PageMain: React.FC<PageMainProps> = ({
         )}
       </section>
 
+      {/* ================= 5. INVENTÁRIO & EQUIPAMENTO // NIGHT CITY GEAR & MOEDA ================= */}
+      <section className="bg-[#12131a] border border-[#232738] p-5 rounded-lg cyber-chamfer shadow-xl space-y-4">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#232738] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded bg-yellow-400/10 border border-yellow-400/40 flex items-center justify-center text-yellow-400">
+              <Package size={18} />
+            </div>
+            <div>
+              <h3 className="font-bold font-orbitron text-base text-slate-100 uppercase">
+                INVENTÁRIO & EQUIPAMENTO // NIGHT CITY GEAR ({characterInventory.length})
+              </h3>
+              <p className="text-xs font-mono text-slate-400">
+                Gerencie itens carregados, consumíveis, munições, chips e transações de Eurodollars.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => { sounds.playClick(); setShowAddInventoryModal(true); }}
+            className="px-3.5 py-1.5 rounded bg-yellow-400 hover:bg-yellow-300 text-black font-orbitron text-xs font-bold uppercase flex items-center gap-1.5 shadow-neon-yellow transition-all"
+          >
+            <Plus size={14} /> Adicionar Item / Equipamento
+          </button>
+        </div>
+
+        {/* Eurobucks & Carrying Capacity Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-[#0a0a0f] p-3 rounded border border-[#1e2333]">
+          {/* Eurobucks Widget */}
+          <div className="flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5 font-bold">
+                <Coins size={15} className="text-yellow-400" />
+                SALDO DE EUROBUCKS (EB):
+              </span>
+              <span className="text-lg font-orbitron font-black text-yellow-400">
+                {character.eurobucks.toLocaleString()} eb
+              </span>
+            </div>
+
+            {/* Quick EB Transaction Buttons */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-mono text-slate-500 mr-1">Transações:</span>
+              <button
+                onClick={() => handleAdjustEurobucks(-100)}
+                className="px-2 py-0.5 rounded bg-red-950/60 hover:bg-red-900 border border-red-500/40 text-red-300 font-mono text-[11px]"
+              >
+                -100
+              </button>
+              <button
+                onClick={() => handleAdjustEurobucks(-50)}
+                className="px-2 py-0.5 rounded bg-red-950/60 hover:bg-red-900 border border-red-500/40 text-red-300 font-mono text-[11px]"
+              >
+                -50
+              </button>
+              <button
+                onClick={() => handleAdjustEurobucks(-10)}
+                className="px-2 py-0.5 rounded bg-red-950/60 hover:bg-red-900 border border-red-500/40 text-red-300 font-mono text-[11px]"
+              >
+                -10
+              </button>
+              <button
+                onClick={() => handleAdjustEurobucks(10)}
+                className="px-2 py-0.5 rounded bg-green-950/60 hover:bg-green-900 border border-green-500/40 text-green-300 font-mono text-[11px]"
+              >
+                +10
+              </button>
+              <button
+                onClick={() => handleAdjustEurobucks(50)}
+                className="px-2 py-0.5 rounded bg-green-950/60 hover:bg-green-900 border border-green-500/40 text-green-300 font-mono text-[11px]"
+              >
+                +50
+              </button>
+              <button
+                onClick={() => handleAdjustEurobucks(100)}
+                className="px-2 py-0.5 rounded bg-green-950/60 hover:bg-green-900 border border-green-500/40 text-green-300 font-mono text-[11px]"
+              >
+                +100
+              </button>
+              <button
+                onClick={() => handleAdjustEurobucks(500)}
+                className="px-2 py-0.5 rounded bg-yellow-950/60 hover:bg-yellow-900 border border-yellow-500/40 text-yellow-300 font-mono text-[11px] font-bold"
+              >
+                +500
+              </button>
+            </div>
+          </div>
+
+          {/* Carrying Capacity Gauge */}
+          <div className="flex flex-col justify-between space-y-2 border-t md:border-t-0 md:border-l border-[#1e2333] pt-2 md:pt-0 md:pl-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5 font-bold">
+                <Box size={15} className="text-cyan-400" />
+                CAPACIDADE DE CARGA (BODY x 10):
+              </span>
+              <span className="text-sm font-mono font-bold text-slate-200">
+                {totalCarriedQuantity} itens / {maxCarryLoad} kg
+              </span>
+            </div>
+
+            <div className="w-full h-3 bg-[#12141e] rounded overflow-hidden border border-[#23283d] p-0.5">
+              <div
+                className={`h-full transition-all duration-300 rounded-sm ${
+                  totalCarriedQuantity > maxCarryLoad ? 'bg-red-500' : 'bg-cyan-500'
+                }`}
+                style={{ width: `${Math.min(100, (totalCarriedQuantity / maxCarryLoad) * 100)}%` }}
+              />
+            </div>
+            <div className="text-[10px] font-mono text-slate-500">
+              {totalCarriedQuantity > maxCarryLoad
+                ? 'SOBRECARREGADO (-2 em MOVE e testes de Atletismo)'
+                : 'Carga dentro dos limites biométricos de transporte.'}
+            </div>
+          </div>
+        </div>
+
+        {/* Filter and Search */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a0a0f] p-2.5 rounded border border-[#1e2333]">
+          <div className="flex flex-wrap gap-1">
+            {INVENTORY_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => { sounds.playClick(); setInventoryCategory(cat); }}
+                className={`px-2.5 py-1 rounded font-orbitron text-[11px] font-bold transition-all ${
+                  inventoryCategory === cat
+                    ? 'bg-yellow-400 text-black shadow-sm'
+                    : 'bg-[#141824] text-slate-400 hover:text-white'
+                }`}
+              >
+                {cat === 'All' ? 'Todos' :
+                 cat === 'Gear' ? 'Equipamento' :
+                 cat === 'Ammo' ? 'Munição' :
+                 cat === 'Consumable' ? 'Consumíveis' :
+                 cat === 'Tech' ? 'Tecnologia' :
+                 cat === 'Tool' ? 'Ferramentas' :
+                 cat === 'Clothes' ? 'Vestuário' : 'Valiosos'}
+              </button>
+            ))}
+          </div>
+
+          <input
+            type="text"
+            value={inventorySearch}
+            onChange={(e) => setInventorySearch(e.target.value)}
+            placeholder="Filtrar itens..."
+            className="bg-[#121520] border border-[#23283d] px-3 py-1 rounded text-xs text-slate-200 focus:border-yellow-400 focus:outline-none w-full sm:w-48"
+          />
+        </div>
+
+        {/* Items Grid */}
+        {filteredInventory.length === 0 ? (
+          <div className="p-6 rounded border border-dashed border-[#232738] text-center font-mono text-xs text-slate-500">
+            Nenhum item encontrado no inventário para este filtro.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredInventory.map((item) => (
+              <div
+                key={item.id}
+                className="bg-[#0a0a0f] border border-[#222738] hover:border-yellow-400/40 p-3 rounded cyber-chamfer flex flex-col justify-between transition-all group"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 uppercase font-bold">
+                          {item.category}
+                        </span>
+                        <span className="text-[10px] font-mono text-yellow-400 font-bold">
+                          {item.costEb} eb cada
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-sm text-slate-100 font-orbitron mt-0.5">
+                        {item.name}
+                      </h4>
+                    </div>
+
+                    <button
+                      onClick={() => handleRemoveItem(item.id, item.name)}
+                      className="text-slate-500 hover:text-red-400 p-1"
+                      title="Excluir item"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+
+                  {item.description && (
+                    <p className="text-[11px] font-mono text-slate-400 mt-1 line-clamp-2">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Bottom Controls: Quantity & Equipped Toggle */}
+                <div className="mt-3 pt-2 border-t border-[#1a1f2e] flex items-center justify-between gap-2 font-mono text-xs">
+                  {/* Quantity adjustments */}
+                  <div className="flex items-center gap-1 bg-[#121520] px-2 py-0.5 rounded border border-[#232738]">
+                    <span className="text-slate-400 text-[10px] mr-1">Qtd:</span>
+                    <button
+                      onClick={() => handleAdjustItemQuantity(item.id, -1)}
+                      className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold"
+                      title="Diminuir 1"
+                    >
+                      -
+                    </button>
+                    <span className="w-6 text-center font-bold text-slate-100">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => handleAdjustItemQuantity(item.id, 1)}
+                      className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold"
+                      title="Aumentar 1"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Equipped toggle button */}
+                  <button
+                    onClick={() => handleToggleItemEquipped(item.id)}
+                    className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all flex items-center gap-1 ${
+                      item.equipped
+                        ? 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/50'
+                        : 'bg-[#151926] text-slate-500 hover:text-slate-300 border border-slate-700'
+                    }`}
+                  >
+                    <CheckCircle2 size={12} className={item.equipped ? 'text-yellow-400' : 'text-slate-600'} />
+                    {item.equipped ? 'Equipado' : 'Na Mochila'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* ================= MODAL ADICIONAR ARMA ================= */}
       {showAddWeaponModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
@@ -1407,6 +1754,150 @@ export const PageMain: React.FC<PageMainProps> = ({
                   className="flex-1 py-2 rounded bg-red-600 text-white font-orbitron font-bold uppercase hover:bg-red-500"
                 >
                   Salvar Ferimento
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL ADICIONAR ITEM / EQUIPAMENTO ================= */}
+      {showAddInventoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-xl bg-[#0c0f16] border-2 border-yellow-400 cyber-chamfer p-6 relative shadow-neon-yellow max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-black font-orbitron text-yellow-400 uppercase mb-3 flex items-center gap-2">
+              <Package size={20} /> ADICIONAR ITEM // INVENTÁRIO
+            </h3>
+
+            {/* Presets List */}
+            <div className="mb-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase block mb-1.5">
+                Escolher Item do Catálogo Rápido de Night City:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                {PRESET_INVENTORY_ITEMS.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleInstallPresetItem(p)}
+                    className="text-left bg-[#10131d] hover:bg-yellow-950/40 p-2 rounded border border-[#20273a] hover:border-yellow-400/50 transition-all font-mono text-xs flex justify-between items-start group"
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-slate-200 group-hover:text-yellow-300">
+                          {p.name}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 block line-clamp-1 mt-0.5">
+                        {p.description}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-yellow-400 font-bold ml-2 whitespace-nowrap">
+                      {p.costEb} eb
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom form */}
+            <form onSubmit={handleAddNewItem} className="space-y-3 font-mono text-xs pt-3 border-t border-[#232738]">
+              <span className="text-[11px] font-mono text-slate-400 uppercase block">
+                Ou Criar Item Customizado:
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1">Nome do Item</label>
+                  <input
+                    type="text"
+                    required
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    placeholder="Ex: Cartão de Acesso Arasaka, Granadas..."
+                    className="w-full bg-[#08090d] border border-[#282d42] px-3 py-2 rounded text-slate-100 focus:border-yellow-400 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1">Categoria</label>
+                  <select
+                    value={newItemCategory}
+                    onChange={(e) => setNewItemCategory(e.target.value as any)}
+                    className="w-full bg-[#08090d] border border-[#282d42] px-3 py-2 rounded text-slate-100 focus:border-yellow-400 focus:outline-none"
+                  >
+                    <option value="Gear">Equipamento (Gear)</option>
+                    <option value="Ammo">Munição (Ammo)</option>
+                    <option value="Consumable">Consumível (Consumable)</option>
+                    <option value="Tech">Tecnologia (Tech)</option>
+                    <option value="Tool">Ferramenta (Tool)</option>
+                    <option value="Clothes">Vestuário (Clothes)</option>
+                    <option value="Valuable">Valioso / Jóia (Valuable)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1">Quantidade</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newItemQuantity}
+                    onChange={(e) => setNewItemQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full bg-[#08090d] border border-[#282d42] px-3 py-2 rounded text-slate-100 focus:border-yellow-400 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1">Custo Unitário (Eurobucks eb)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newItemCost}
+                    onChange={(e) => setNewItemCost(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full bg-[#08090d] border border-[#282d42] px-3 py-2 rounded text-yellow-400 font-bold focus:border-yellow-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Descrição / Notas</label>
+                <textarea
+                  rows={2}
+                  value={newItemDescription}
+                  onChange={(e) => setNewItemDescription(e.target.value)}
+                  placeholder="Efeitos, propriedades, DV de teste, munição compatível..."
+                  className="w-full bg-[#08090d] border border-[#282d42] px-3 py-2 rounded text-slate-100 focus:border-yellow-400 focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="equippedItemCheck"
+                  checked={newItemEquipped}
+                  onChange={(e) => setNewItemEquipped(e.target.checked)}
+                  className="accent-yellow-400 w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="equippedItemCheck" className="text-slate-300 text-xs cursor-pointer">
+                  Equipar imediatamente no personagem (ou guardar na mochila)
+                </label>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddInventoryModal(false)}
+                  className="flex-1 py-2 rounded bg-slate-800 text-slate-400 hover:text-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 rounded bg-yellow-400 text-black font-orbitron font-bold uppercase hover:bg-yellow-300"
+                >
+                  Salvar Item
                 </button>
               </div>
             </form>

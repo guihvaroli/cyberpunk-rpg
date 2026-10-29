@@ -297,7 +297,11 @@ export const PageRipperdoc: React.FC<PageRipperdocProps> = ({
               {/* Region Header */}
               <div className="flex items-start justify-between border-b border-[#232738] pb-3">
                 <div>
-                  <span className="text-[10px] font-mono text-yellow-400 uppercase tracking-widest">
+                  <span className={`text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded border inline-block mb-1 ${
+                    selectedRegion.location === 'fashionware' ? 'bg-pink-950/70 border-pink-500/50 text-pink-300 font-bold' :
+                    selectedRegion.location === 'borgware' ? 'bg-purple-950/70 border-purple-500/50 text-purple-300 font-bold' :
+                    'bg-yellow-400/10 border-yellow-400/30 text-yellow-400'
+                  }`}>
                     {selectedRegion.categoryName}
                   </span>
                   <h3 className="text-lg font-bold font-orbitron text-slate-100 uppercase">

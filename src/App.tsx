@@ -7,6 +7,7 @@ import { Header, ActiveView } from './components/Header';
 import { PageMain } from './components/PageMain';
 import { PageSkills } from './components/PageSkills';
 import { PageRipperdoc } from './components/PageRipperdoc';
+import { PageNetrunning } from './components/PageNetrunning';
 import { DiceRollModal } from './components/DiceRollModal';
 
 const STORAGE_KEY = 'CYBERPUNK_RED_2077_SHEET';
@@ -28,6 +29,28 @@ export function App() {
             parsed.stats.LUCK_MAX = 6;
             parsed.stats.LUCK_CURRENT = parsed.stats.LUCK_CURRENT ?? 6;
           }
+
+          // Migrate cyberware locations
+          if (Array.isArray(parsed.cyberware)) {
+            parsed.cyberware = parsed.cyberware.map((c: any) => {
+              let loc = c.location;
+              if (loc === 'cyberoptics_right' || loc === 'cyberoptics_left') loc = 'cyberoptics';
+              if (loc === 'cyberarm_right' || loc === 'cyberarm_left') loc = 'cyberarm';
+              if (loc === 'cyberleg_right' || loc === 'cyberleg_left') loc = 'cyberleg';
+              return { ...c, location: loc };
+            });
+          }
+
+          // Ensure inventory exists
+          if (!parsed.inventory || !Array.isArray(parsed.inventory)) {
+            parsed.inventory = DEFAULT_CHARACTER.inventory;
+          }
+
+          // Ensure cyberdeck exists
+          if (!parsed.cyberdeck) {
+            parsed.cyberdeck = DEFAULT_CHARACTER.cyberdeck;
+          }
+
           return parsed;
         }
       }
@@ -39,6 +62,13 @@ export function App() {
 
   // Current view
   const [activeView, setActiveView] = useState<ActiveView>('main');
+
+  // If role is changed away from Netrunner while on netrunning view, fallback to main
+  useEffect(() => {
+    if (activeView === 'netrunning' && character.role !== 'Netrunner') {
+      setActiveView('main');
+    }
+  }, [activeView, character.role]);
 
   // Audio & visual settings
   const [soundEnabled, setSoundEnabled] = useState<boolean>(sounds.enabled);
@@ -157,6 +187,15 @@ export function App() {
           <PageRipperdoc
             character={character}
             onUpdateCharacter={setCharacter}
+          />
+        )}
+
+        {activeView === 'netrunning' && character.role === 'Netrunner' && (
+          <PageNetrunning
+            character={character}
+            onUpdateCharacter={setCharacter}
+            onTriggerSkillRoll={setActiveSkillRoll}
+            onTriggerDamageRoll={setActiveDamageRoll}
           />
         )}
       </main>

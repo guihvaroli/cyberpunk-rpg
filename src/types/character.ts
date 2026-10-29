@@ -74,18 +74,15 @@ export interface CriticalInjury {
 }
 
 export type CyberwareLocation = 
-  | 'neuralware' 
-  | 'cyberoptics_right'
-  | 'cyberoptics_left'
+  | 'fashionware'
+  | 'borgware'
+  | 'neuralware'
+  | 'cyberoptics'
   | 'cyberaudio' 
   | 'internal' 
   | 'external' 
-  | 'fashionware'
-  | 'cyberarm_right' 
-  | 'cyberarm_left' 
-  | 'cyberleg_right' 
-  | 'cyberleg_left' 
-  | 'borgware';
+  | 'cyberarm' 
+  | 'cyberleg';
 
 export interface CyberwareItem {
   id: string;
@@ -97,6 +94,50 @@ export interface CyberwareItem {
   description: string;
   isCustom?: boolean;
   isDefault?: boolean; // e.g. Neuroport
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: 'Gear' | 'Ammo' | 'Consumable' | 'Tech' | 'Tool' | 'Valuable' | 'Clothes';
+  quantity: number;
+  costEb: number;
+  equipped?: boolean;
+  description: string;
+}
+
+export interface CyberdeckProgram {
+  id: string;
+  name: string;
+  category: 'Booster' | 'Defender' | 'Attacker' | 'Black ICE';
+  classType?: string; // e.g. Anti-Program, Anti-Personnel
+  slots: number;
+  costEb: number;
+  rezHp?: number;
+  rezHpMax?: number;
+  attackBonus?: number;
+  defenseBonus?: number;
+  damageFormula?: string; // e.g. '3d6', '2d6'
+  effect: string;
+  equipped: boolean;
+  isBlackIce?: boolean;
+}
+
+export interface CyberdeckHardware {
+  id: string;
+  name: string;
+  slots: number;
+  costEb: number;
+  effect: string;
+  installed: boolean;
+}
+
+export interface CyberdeckState {
+  modelName: string;
+  hardwareSlots: number;
+  programSlots: number;
+  programs: CyberdeckProgram[];
+  hardware: CyberdeckHardware[];
 }
 
 export interface SkillDefinition {
@@ -135,6 +176,8 @@ export interface CharacterSheet {
   armor: ArmorState;
   weapons: Weapon[];
   criticalInjuries: CriticalInjury[];
+  inventory: InventoryItem[];
+  cyberdeck?: CyberdeckState;
   
   skills: Record<string, number>; // Skill name -> level (0-10)
   cyberware: CyberwareItem[];
