@@ -503,7 +503,7 @@ export const PageMain: React.FC<PageMainProps> = ({
           {/* Rank da Habilidade */}
           <div className="md:col-span-2">
             <label className="block text-[11px] font-mono text-slate-400 uppercase tracking-widest mb-1">
-              Rank (1-10)
+              Rank (4-10)
             </label>
             <div className="flex items-center gap-1 bg-[#0a0a0f] border border-[#282d42] p-1 rounded">
               <button
@@ -511,10 +511,12 @@ export const PageMain: React.FC<PageMainProps> = ({
                   sounds.playClick();
                   onUpdateCharacter((prev) => ({
                     ...prev,
-                    roleAbilityRank: Math.max(1, prev.roleAbilityRank - 1),
+                    roleAbilityRank: Math.max(4, (prev.roleAbilityRank || 4) - 1),
                   }));
                 }}
-                className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800"
+                disabled={character.roleAbilityRank <= 4}
+                className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Diminuir Rank (mínimo 4)"
               >
                 <Minus size={14} />
               </button>
@@ -526,10 +528,12 @@ export const PageMain: React.FC<PageMainProps> = ({
                   sounds.playClick();
                   onUpdateCharacter((prev) => ({
                     ...prev,
-                    roleAbilityRank: Math.min(10, prev.roleAbilityRank + 1),
+                    roleAbilityRank: Math.min(10, (prev.roleAbilityRank || 4) + 1),
                   }));
                 }}
-                className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800"
+                disabled={character.roleAbilityRank >= 10}
+                className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Aumentar Rank (máximo 10)"
               >
                 <Plus size={14} />
               </button>
@@ -569,18 +573,43 @@ export const PageMain: React.FC<PageMainProps> = ({
               </div>
             </div>
 
-            <div className="w-24">
+            <div className="w-28">
               <label className="block text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">
-                Reputação
+                Reputação (0-10)
               </label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={character.reputation}
-                onChange={(e) => onUpdateCharacter((prev) => ({ ...prev, reputation: Math.max(0, parseInt(e.target.value) || 0) }))}
-                className="w-full bg-[#0a0a0f] border border-[#282d42] px-2 py-1.5 rounded font-mono font-bold text-slate-100 text-sm text-center focus:border-cyan-400 focus:outline-none"
-              />
+              <div className="flex items-center gap-1 bg-[#0a0a0f] border border-[#282d42] p-1 rounded">
+                <button
+                  onClick={() => {
+                    sounds.playClick();
+                    onUpdateCharacter((prev) => ({
+                      ...prev,
+                      reputation: Math.max(0, (prev.reputation || 0) - 1),
+                    }));
+                  }}
+                  disabled={character.reputation <= 0}
+                  className="w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Diminuir Reputação (mínimo 0)"
+                >
+                  <Minus size={12} />
+                </button>
+                <span className="flex-1 text-center font-orbitron font-bold text-cyan-400 text-sm">
+                  {character.reputation}
+                </span>
+                <button
+                  onClick={() => {
+                    sounds.playClick();
+                    onUpdateCharacter((prev) => ({
+                      ...prev,
+                      reputation: Math.min(10, (prev.reputation || 0) + 1),
+                    }));
+                  }}
+                  disabled={character.reputation >= 10}
+                  className="w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Aumentar Reputação (máximo 10)"
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
             </div>
           </div>
 
