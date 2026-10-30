@@ -17,7 +17,8 @@ import {
   User, 
   Activity,
   Layers,
-  Terminal
+  Terminal,
+  FileX
 } from 'lucide-react';
 
 export type ActiveView = 'main' | 'skills' | 'ripperdoc' | 'netrunning';
@@ -29,6 +30,7 @@ interface HeaderProps {
   onExportJson: () => void;
   onImportJson: (json: string) => void;
   onResetCharacter: () => void;
+  onClearBlankCharacter: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
   scanlinesEnabled: boolean;
@@ -42,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   onExportJson,
   onImportJson,
   onResetCharacter,
+  onClearBlankCharacter,
   soundEnabled,
   onToggleSound,
   scanlinesEnabled,
@@ -195,11 +198,21 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden md:inline">Exportar</span>
           </button>
 
-          {/* Reset Sheet */}
+          {/* Resetar Completamente (Ficha em Branco) */}
+          <button
+            onClick={() => { sounds.playClick(); onClearBlankCharacter(); }}
+            className="px-2.5 py-1.5 rounded bg-[#171120] border border-red-500/50 hover:border-red-400 text-red-400 hover:text-red-300 font-mono text-xs flex items-center gap-1.5 transition-colors shadow-[0_0_8px_rgba(255,0,60,0.15)]"
+            title="Resetar completamente a ficha: zera todas as perícias (0), esvazia inventário, armas e implantes para criar um novo personagem do zero"
+          >
+            <FileX size={14} className="text-red-400" />
+            <span className="hidden sm:inline font-bold">Ficha em Branco</span>
+          </button>
+
+          {/* Restaurar Modelo V */}
           <button
             onClick={() => { sounds.playClick(); onResetCharacter(); }}
-            className="p-1.5 rounded bg-[#12141f] border border-[#262c42] hover:border-red-500 text-slate-500 hover:text-red-400 transition-colors"
-            title="Resetar para ficha padrão (V)"
+            className="p-1.5 rounded bg-[#12141f] border border-[#262c42] hover:border-yellow-400 text-slate-400 hover:text-yellow-400 transition-colors"
+            title="Restaurar Personagem Exemplo (V - Solo)"
           >
             <RotateCcw size={15} />
           </button>

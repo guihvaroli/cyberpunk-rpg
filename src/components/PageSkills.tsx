@@ -12,7 +12,8 @@ import {
   CheckCircle2, 
   AlertTriangle,
   Flame,
-  HelpCircle
+  HelpCircle,
+  RotateCcw
 } from 'lucide-react';
 
 interface PageSkillsProps {
@@ -88,6 +89,23 @@ export const PageSkills: React.FC<PageSkillsProps> = ({
         },
       };
     });
+  };
+
+  // Reset all skills to 0
+  const handleResetAllSkills = () => {
+    if (confirm('Deseja zerar TODAS as perícias (definir todas para nível 0)?')) {
+      sounds.playClick();
+      onUpdateCharacter((prev) => {
+        const resetSkills: Record<string, number> = {};
+        OFFICIAL_SKILLS.forEach((s) => {
+          resetSkills[s.name] = 0;
+        });
+        return {
+          ...prev,
+          skills: resetSkills,
+        };
+      });
+    }
   };
 
   // Roll skill check
@@ -189,18 +207,26 @@ export const PageSkills: React.FC<PageSkillsProps> = ({
             </select>
           </div>
 
-          {/* Trained Only Toggle (4 cols) */}
-          <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3">
+          {/* Trained Only Toggle & Reset Skills (4 cols) */}
+          <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-2 flex-wrap">
             <button
               onClick={() => { sounds.playClick(); setOnlyTrained(!onlyTrained); }}
-              className={`px-3 py-1.5 rounded text-xs font-mono flex items-center gap-1.5 border transition-all ${
+              className={`px-2.5 py-1.5 rounded text-xs font-mono flex items-center gap-1.5 border transition-all ${
                 onlyTrained
                   ? 'bg-yellow-400/20 border-yellow-400 text-yellow-300 font-bold'
                   : 'bg-[#0c0d14] border-[#232738] text-slate-400 hover:text-white'
               }`}
             >
-              <CheckCircle2 size={14} className={onlyTrained ? 'text-yellow-400' : 'text-slate-500'} />
-              Apenas Treinadas (LVL &gt; 0)
+              <CheckCircle2 size={13} className={onlyTrained ? 'text-yellow-400' : 'text-slate-500'} />
+              Apenas Treinadas
+            </button>
+            <button
+              onClick={handleResetAllSkills}
+              title="Zera todas as perícias (nível 0) de uma vez"
+              className="px-2.5 py-1.5 rounded text-xs font-mono flex items-center gap-1 bg-[#181119] border border-red-500/40 hover:border-red-400 text-red-400 hover:text-red-300 transition-colors"
+            >
+              <RotateCcw size={12} />
+              <span>Zerar Perícias</span>
             </button>
             <div className="text-xs font-mono text-slate-500">
               {filteredSkills.length} perícias

@@ -1,4 +1,5 @@
 import { CharacterSheet } from '../types/character';
+import { OFFICIAL_SKILLS } from './skillsData';
 
 export const DEFAULT_CHARACTER: CharacterSheet = {
   id: 'cp2077-v-solo-01',
@@ -387,3 +388,74 @@ export const DEFAULT_CHARACTER: CharacterSheet = {
     },
   ],
 };
+
+export function createBlankCharacter(): CharacterSheet {
+  const emptySkills: Record<string, number> = {};
+  OFFICIAL_SKILLS.forEach((skill) => {
+    emptySkills[skill.name] = 0;
+  });
+
+  return {
+    id: `cp2077-blank-${Date.now()}`,
+    handle: '',
+    realName: '',
+    role: 'Solo',
+    roleAbilityName: 'Combat Awareness',
+    roleAbilityRank: 4,
+    reputation: 0,
+    eurobucks: 0,
+    avatarUrl: '',
+    notes: '',
+
+    stats: {
+      INT: 4,
+      REF: 4,
+      DEX: 4,
+      TECH: 4,
+      COOL: 4,
+      WILL: 4,
+      LUCK_CURRENT: 4,
+      LUCK_MAX: 4,
+      MOVE: 4,
+      BODY: 4,
+      EMP_BASE: 4,
+    },
+
+    hpCurrent: 30,
+    deathSavePenalty: 0,
+
+    armor: {
+      head: {
+        name: 'Nenhuma',
+        spMax: 0,
+        spCurrent: 0,
+      },
+      body: {
+        name: 'Nenhuma',
+        spMax: 0,
+        spCurrent: 0,
+      },
+      shield: {
+        hpMax: 0,
+        hpCurrent: 0,
+        equipped: false,
+      },
+      penalty: 0,
+    },
+
+    weapons: [],
+    criticalInjuries: [],
+    inventory: [], // Empty inventory!
+    cyberware: [], // Empty cyberware!
+    skills: emptySkills, // Every skill at 0!
+    cyberdeck: {
+      modelName: 'Cyberdeck Básico',
+      hardwareSlots: 5,
+      programSlots: 5,
+      hardware: [],
+      programs: [],
+    },
+  };
+}
+
+export const BLANK_CHARACTER: CharacterSheet = createBlankCharacter();

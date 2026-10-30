@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CharacterSheet, RollBreakdown } from './types/character';
-import { DEFAULT_CHARACTER } from './data/defaultCharacter';
+import { DEFAULT_CHARACTER, createBlankCharacter } from './data/defaultCharacter';
 import { DamageRollResult } from './utils/calculations';
 import { sounds } from './utils/audio';
 import { Header, ActiveView } from './components/Header';
@@ -140,11 +140,23 @@ export function App() {
     }
   };
 
-  // Reset to default
+  // Reset to default character (V)
   const handleResetCharacter = () => {
-    if (confirm('Deseja resetar a ficha para o personagem padrão (V - Solo)? Quaisquer alterações não salvas em arquivo serão perdidas.')) {
+    if (confirm('Deseja restaurar a ficha para o personagem exemplo (V - Solo)? Quaisquer alterações não salvas em arquivo serão perdidas.')) {
       sounds.playClick();
       setCharacter(DEFAULT_CHARACTER);
+    }
+  };
+
+  // Reset completely to blank character
+  const handleClearBlankCharacter = () => {
+    if (
+      confirm(
+        'Deseja resetar COMPLETAMENTE a ficha?\n\n• Todas as perícias serão zeradas (nível 0)\n• O inventário ficará vazio\n• Armas, implantes e ferimentos serão removidos\n• Nome e notas serão limpos para você criar um novo personagem do zero.'
+      )
+    ) {
+      sounds.playClick();
+      setCharacter(createBlankCharacter());
     }
   };
 
@@ -159,6 +171,7 @@ export function App() {
         onExportJson={handleExportJson}
         onImportJson={handleImportJson}
         onResetCharacter={handleResetCharacter}
+        onClearBlankCharacter={handleClearBlankCharacter}
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
         scanlinesEnabled={scanlinesEnabled}
